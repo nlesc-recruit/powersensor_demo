@@ -2,6 +2,8 @@
 
 This repository contains the code made for demonstration of the use of PowerSensor3 with Kernel Tuner.
 
+![example image](powersensor_demo.png)
+
 # Installation
 
 To use this, you should first obtain a PowerSensor3 device and accompanying software:
@@ -30,16 +32,16 @@ python dedispersion.py
 
 Then, while that is running move to another terminal and type:
 ```bash
-ktdashboard dedisp-cache.json
+ktdashboard dedisp_cache.json
 ```
 
-This should fire up a browser showing the dashboard with the results collected by Kernel Tuner so far. The URL is also printed to the 
-console. Typically, port forwarding is used to allow the browser to run on your local system.
+This should print the URL where the dashboard is running. Typically, port forwarding is used to allow the browser to run on your local system, while the dashboard runs somewhere else, for example on the headnode of a cluster.
+This may require that you change a setting in your browser to allow 'localhost' to be proxied as well. 
 
-The file ``dedisp-cache.json`` is persistent, if you give the demo a second time Kernel Tuner will resume where it had left off last time. If 
-you want to start the demo again from scratch delete the dedisp-cache.json file.
+The file ``dedisp_cache.json`` is persistent, if you give the demo a second time Kernel Tuner will resume where it had left off last time. If 
+you want to start the demo again from scratch delete the dedisp_cache.json file.
 
-
+If all goes well, it should look like the image at the top of this readme.
 
 
 

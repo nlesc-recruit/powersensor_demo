@@ -3,6 +3,7 @@ import os
 import numpy as np
 from collections import OrderedDict
 import kernel_tuner as kt
+from kernel_tuner.observers.powersensor import PowerSensorObserver
 
 nr_dms = 2048
 nr_samples = 25000
