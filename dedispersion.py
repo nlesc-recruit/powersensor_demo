@@ -7,12 +7,12 @@ from kernel_tuner.observers.powersensor import PowerSensorObserver
 
 nr_dms = 512
 nr_samples = 12500
-nr_channels = 1536
+nr_channels = 384
 down_sampling = 1
 dm_first = 0.0
 dm_step = 0.02
 
-channel_bandwidth = 0.1953125
+channel_bandwidth = 0.78125
 sampling_time = 0.00008192
 min_freq = 1220. - .5 * channel_bandwidth
 max_freq = min_freq + (nr_channels-1) * channel_bandwidth
@@ -133,8 +133,8 @@ def tune():
 
 
 if __name__ == "__main__":
-    print("Creating reference ...")
-    create_reference()
+    # print("Creating reference ...")
+    # create_reference()
 
-    # print("Tuning ...")
-    # tune()
+    print("Tuning ...")
+    tune()
