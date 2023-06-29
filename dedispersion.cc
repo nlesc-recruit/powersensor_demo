@@ -1,9 +1,9 @@
-
 #include "dedispersion.h"
 
 extern "C"
 void dedispersion_reference(const unsigned char * input, float * output, const float * shifts) {
 	for ( unsigned int dm = 0; dm < nr_dms; dm++ ) {
+    std::cout << dm << " / " << nr_dms << std::endl;
 		for ( unsigned int sample = 0; sample < nr_samples; sample++ ) {
 			float dedispersedSample = 0.0f;
 
