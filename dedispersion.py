@@ -5,16 +5,16 @@ from collections import OrderedDict
 import kernel_tuner as kt
 from kernel_tuner.observers.powersensor import PowerSensorObserver
 
-nr_dms = 2048
-nr_samples = 25000
+nr_dms = 512
+nr_samples = 12500
 nr_channels = 1536
 down_sampling = 1
 dm_first = 0.0
 dm_step = 0.02
 
 channel_bandwidth = 0.1953125
-sampling_time = 0.00004096
-min_freq = 1425.0
+sampling_time = 0.00008192
+min_freq = 1220. - .5 * channel_bandwidth
 max_freq = min_freq + (nr_channels-1) * channel_bandwidth
 
 HEADER_TEMPLATE = """
