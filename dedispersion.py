@@ -122,7 +122,7 @@ def tune():
 
     # power measurement
     ps_observer = PowerSensorObserver(["ps_energy"])
-    metrics["GBs/W"] = lambda p: gbytes / p["ps_energy"]
+    metrics["GB/s/W"] = lambda p: gbytes / p["ps_energy"]
     metrics["GPU (W)"] = lambda p: p["ps_energy"] / (p["time"]/1e3)
 
     results, env = kt.tune_kernel("dedispersion_kernel", "dedispersion.cu", problem_size, args, tune_params,
