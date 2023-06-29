@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "dedispersion.h"
 
 extern "C"
