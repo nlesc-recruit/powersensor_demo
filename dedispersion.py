@@ -4,6 +4,8 @@ import numpy as np
 from collections import OrderedDict
 import kernel_tuner as kt
 from kernel_tuner.observers.powersensor import PowerSensorObserver
+from kernel_tuner.observers.pmt import PMTObserver
+from kernel_tuner.observers.tegra import TegraObserver, get_tegra_gr_clocks
 
 nr_dms = 512
 nr_samples = 12500
@@ -101,6 +103,25 @@ def tune():
     tune_params["loop_unroll_factor_channel"] = [0]  # + [i for i in range(1,nr_channels+1) if nr_channels % i == 0] #[i for i in range(nr_channels+1)]
     # tune_params["blocks_per_sm"] = [i for i in range(5)]
 
+    # best at max gpu clock
+    tune_params['block_size_x'] = [8, 4]
+    tune_params['block_size_y'] = [112]
+    tune_params['block_size_z'] = [1]
+    
+    tune_params['tile_size_x'] = [3]
+    tune_params['tile_size_y'] = [2]
+    tune_params['tile_stride_x']= [1]
+    tune_params['tile_stride_y']= [0]
+
+    # tune clock frequencies
+    clocks = get_tegra_gr_clocks()
+    # note: there is only key-value pair in the dict,
+    # but this way we don't need to know the key
+    #for k, v in clocks.items():
+    #    clocks[k] = v[-3:]  # only use highest 3 clock values
+            
+    tune_params.update(clocks)
+
     print("Parameters:")
     [print(k, v) for k, v in tune_params.items()]
 
@@ -120,19 +141,33 @@ def tune():
     gbytes = (nr_dms * nr_samples * nr_channels) / 1e9
     metrics["GB/s"] = lambda p: gbytes / (p['time'] / 1e3)
 
-    # power measurement
-    ps_observer = PowerSensorObserver(["ps_energy"])
-    pmt_observer = PMTObserver(["tegra"])
-    observers = [pmt_observer, ps_observer]
+    # Tegra core clock monitoring and control
+    tegra_observer = TegraObserver(observables=["core_freq"])
+    observers = [tegra_observer]
 
-    metrics["GB/s/W (PS)"] = lambda p: gbytes / p["ps_energy"]
-    metrics["GPU (W) (PS)"] = lambda p: p["ps_energy"] / (p["time"]/1e3)
-    metrics["GB/s/W (Jetson)"] = lambda p: gbytes / p["tegra_energy"]
-    metrics["GPU (W) (Jetson)"] = lambda p: p["tegra_energy"] / (p["time"]/1e3)
+    metrics["GPU frequency (MHz)"] = lambda p: p["core_freq"] / 1e6
+
+    # power measurement
+    pmt_observer = PMTObserver(["tegra"])
+    observers.append(pmt_observer)
+
+    metrics["GB/s/W (GPU)"] = lambda p: gbytes / p["tegra_energy"]
+    metrics["GPU (W)"] = lambda p: p["tegra_energy"] / (p["time"]/1e3)
+
+    if os.path.exists('/dev/ttyACM0') and not "DEBUG" in os.environ:
+        ps_observer = PowerSensorObserver(["ps_energy"], dumpfile="/dev/shm/ps3.txt")
+        observers.append(ps_observer)
+        metrics["GB/s/W (system)"] = lambda p: gbytes / p["ps_energy"]
+        metrics["System (W)"] = lambda p: p["ps_energy"] / (p["time"]/1e3)
+        metrics["System (J)"] = lambda p: p["ps_energy"]
+    else:
+        print("No powersensor found")
+
 
     results, env = kt.tune_kernel("dedispersion_kernel", "dedispersion.cu", problem_size, args, tune_params,
                                   compiler_options=cp, restrictions=config_valid,
-                                  cache="dedisp_cache.json", strategy="random_sample",
+                                  #cache="dedisp_cache.json", strategy="brute_force",
+                                  cache=None, strategy="brute_force",
                                   metrics=metrics, observers=observers)
 
 
