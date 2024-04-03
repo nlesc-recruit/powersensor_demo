@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import sys
 import numpy as np
 from collections import OrderedDict
 import kernel_tuner as kt
@@ -79,7 +80,7 @@ def create_reference():
     np.save("dedisp_ref", reference[1], allow_pickle=False)
 
 
-def tune(loop):
+def tune(full):
     input_samples = np.load("input_ref.npy")
     output_arr = np.zeros(nr_dms * nr_samples, dtype=np.float32)
     shifts = np.load("shifts_ref.npy")
@@ -104,21 +105,24 @@ def tune(loop):
     # tune_params["blocks_per_sm"] = [i for i in range(5)]
 
     # best at max gpu clock
-    tune_params['block_size_x'] = [8, 4]
-    tune_params['block_size_y'] = [112]
-    tune_params['block_size_z'] = [1]
-    
-    tune_params['tile_size_x'] = [3]
-    tune_params['tile_size_y'] = [2]
-    tune_params['tile_stride_x']= [1]
-    tune_params['tile_stride_y']= [0]
+    if not full:
+        tune_params['block_size_x'] = [8, 4]
+        tune_params['block_size_y'] = [112]
+        tune_params['block_size_z'] = [1]
+        
+        tune_params['tile_size_x'] = [3]
+        tune_params['tile_size_y'] = [2]
+        tune_params['tile_stride_x']= [1]
+        tune_params['tile_stride_y']= [0]
 
     # tune clock frequencies
     clocks = get_tegra_gr_clocks()
     # note: there is only key-value pair in the dict,
     # but this way we don't need to know the key
-    #for k, v in clocks.items():
-    #    clocks[k] = v[-3:]  # only use highest 3 clock values
+
+    if full:
+        for k, v in clocks.items():
+            clocks[k] = v[-4:]  # only use highest 4 clock values
             
     tune_params.update(clocks)
 
@@ -170,28 +174,19 @@ def tune(loop):
         print("No powersensor found")
 
 
-    if loop:
-        while True:
-            results, env = kt.tune_kernel("dedispersion_kernel", "dedispersion.cu", problem_size, args, tune_params,
-                                          compiler_options=cp, restrictions=config_valid,
-                                          cache="dedisp_cache.json", strategy="brute_force",
-                                          metrics=metrics, observers=observers)
-            # clear cache
-            open("dedisp_cache.json", "w").close()
-    else:
-        results, env = kt.tune_kernel("dedispersion_kernel", "dedispersion.cu", problem_size, args, tune_params,
-                                      compiler_options=cp, restrictions=config_valid,
-                                      cache="dedisp_cache.json", strategy="brute_force",
-                                      metrics=metrics, observers=observers)
+    results, env = kt.tune_kernel("dedispersion_kernel", "dedispersion.cu", problem_size, args, tune_params,
+                                  compiler_options=cp, restrictions=config_valid,
+                                  cache="dedisp_cache.json", strategy="brute_force",
+                                  metrics=metrics, observers=observers)
 
 
 if __name__ == "__main__":
     # print("Creating reference ...")
     # create_reference()
-    loop = False
+    full = False
     if len(sys.argv) > 1:
-        if sys.argv[1] == '--loop':
-            loop = True
+        if sys.argv[1] == '--full':
+            full = True
 
     print("Tuning ...")
-    tune(loop)
+    tune(full)
