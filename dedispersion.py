@@ -176,6 +176,8 @@ def tune(loop):
                                           compiler_options=cp, restrictions=config_valid,
                                           cache="dedisp_cache.json", strategy="brute_force",
                                           metrics=metrics, observers=observers)
+            # clear cache
+            open("dedisp_cache.json", "w").close()
     else:
         results, env = kt.tune_kernel("dedispersion_kernel", "dedispersion.cu", problem_size, args, tune_params,
                                       compiler_options=cp, restrictions=config_valid,
