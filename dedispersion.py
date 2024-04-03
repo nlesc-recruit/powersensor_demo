@@ -79,7 +79,7 @@ def create_reference():
     np.save("dedisp_ref", reference[1], allow_pickle=False)
 
 
-def tune():
+def tune(loop):
     input_samples = np.load("input_ref.npy")
     output_arr = np.zeros(nr_dms * nr_samples, dtype=np.float32)
     shifts = np.load("shifts_ref.npy")
@@ -151,7 +151,13 @@ def tune():
     pmt_observer = PMTObserver(["tegra"])
     observers.append(pmt_observer)
 
-    metrics["GB/s/W (GPU)"] = lambda p: gbytes / p["tegra_energy"]
+    def func(p):
+        if p["tegra_energy"] == 0:
+            return 0
+        else:
+            return gbytes / p["tegra_energy"]
+    #metrics["GB/s/W (GPU)"] = lambda p: gbytes / p["tegra_energy"]
+    metrics["GB/s/W (GPU)"] = func
     metrics["GPU (W)"] = lambda p: p["tegra_energy"] / (p["time"]/1e3)
 
     if os.path.exists('/dev/ttyACM0') and not "DEBUG" in os.environ:
@@ -164,16 +170,26 @@ def tune():
         print("No powersensor found")
 
 
-    results, env = kt.tune_kernel("dedispersion_kernel", "dedispersion.cu", problem_size, args, tune_params,
-                                  compiler_options=cp, restrictions=config_valid,
-                                  #cache="dedisp_cache.json", strategy="brute_force",
-                                  cache=None, strategy="brute_force",
-                                  metrics=metrics, observers=observers)
+    if loop:
+        while True:
+            results, env = kt.tune_kernel("dedispersion_kernel", "dedispersion.cu", problem_size, args, tune_params,
+                                          compiler_options=cp, restrictions=config_valid,
+                                          cache="dedisp_cache.json", strategy="brute_force",
+                                          metrics=metrics, observers=observers)
+    else:
+        results, env = kt.tune_kernel("dedispersion_kernel", "dedispersion.cu", problem_size, args, tune_params,
+                                      compiler_options=cp, restrictions=config_valid,
+                                      cache="dedisp_cache.json", strategy="brute_force",
+                                      metrics=metrics, observers=observers)
 
 
 if __name__ == "__main__":
     # print("Creating reference ...")
     # create_reference()
+    loop = False
+    if len(sys.argv) > 1:
+        if sys.argv[1] == '--loop':
+            loop = True
 
     print("Tuning ...")
-    tune()
+    tune(loop)
